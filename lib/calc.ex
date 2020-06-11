@@ -1,60 +1,39 @@
 defmodule Calc do
+  alias Calc.Memo
+
   def initial(n) do
-    {:ok, pid} = Agent.start_link(fn -> %{result: n, history: []} end)
-    add_history(pid, n)
+    Memo.initial(n)
+    |> Memo.add_history(n)
   end
 
-  def add(pid, n) do
-    pid
-    |> add_history("+")
-    |> update_result(n, fn result, n -> result + n end)
+  def add(memo, n) do
+    memo
+    |> Memo.update_result(n, &(&1 + &2))
+    |> Memo.add_history("+")
+    |> Memo.add_history(n)
   end
 
-  def substract(pid, n) do
-    pid
-    |> add_history("-")
-    |> update_result(n, fn result, n -> result - n end)
+  def substract(memo, n) do
+    memo
+    |> Memo.update_result(n, &(&1 - &2))
+    |> Memo.add_history("-")
+    |> Memo.add_history(n)
   end
 
-  def multiply(pid, n) do
-    pid
-    |> add_history("*")
-    |> update_result(n, fn result, n -> result * n end)
+  def multiply(memo, n) do
+    memo
+    |> Memo.update_result(n, &(&1 * &2))
+    |> Memo.add_history("*")
+    |> Memo.add_history(n)
   end
 
-  def divide(pid, n) do
-    pid
-    |> add_history("/")
-    |> update_result(n, fn result, n -> result / n end)
+  def divide(memo, n) do
+    memo
+    |> Memo.update_result(n, &(&1 / &2))
+    |> Memo.add_history("/")
+    |> Memo.add_history(n)
   end
 
-  def result(pid) do
-    Agent.get(pid, fn state -> floor(state[:result]) end)
-  end
-
-  def history(pid) do
-    Agent.get(pid, fn state ->
-      [floor(state[:result]) | ["=" | state[:history]]]
-      |> Enum.reverse()
-      |> Enum.join(" ")
-    end)
-  end
-
-  defp update_result(pid, n, operation) do
-    pid
-    |> add_history(n)
-    |> Agent.get_and_update(fn state ->
-      {state, Map.put(state, :result, operation.(state[:result], n))}
-    end)
-
-    pid
-  end
-
-  defp add_history(pid, n) do
-    Agent.get_and_update(pid, fn state ->
-      {state, Map.put(state, :history, [n | state[:history]])}
-    end)
-
-    pid
-  end
+  defdelegate result(memo), to: Memo
+  defdelegate history(memo), to: Memo
 end
